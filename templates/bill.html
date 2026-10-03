@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Challan {{ bill.challan_no }} | Driver Billing System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="print-mode-{{ print_mode }}">
+    <main class="page-shell preview-shell">
+        <nav class="preview-actions no-print" aria-label="Bill actions">
+            <a class="button button-light" href="{{ url_for('home') }}">New bill</a>
+            <a class="button button-light" href="{{ url_for('bills_page') }}">Saved bills</a>
+            <a class="button button-secondary" href="{{ url_for('edit_bill', challan_no=bill.challan_no) }}">Edit bill</a>
+            <label class="print-mode-setting">
+                <span>Print mode</span>
+                <select id="print-mode" aria-label="Print mode">
+                    <option value="full" {% if print_mode == 'full' %}selected{% endif %}>Full bill</option>
+                    <option value="values" {% if print_mode == 'values' %}selected{% endif %}>Values only (pre-printed paper)</option>
+                </select>
+            </label>
+            <button class="button button-primary" type="button" onclick="window.print()">Print</button>
+        </nav>
+
+        <article id="bill-print-sheet" class="bill-paper" data-print-mode="{{ print_mode }}">
+            <section class="full-bill-content">
+                <header class="bill-book-header">
+                    <p class="business-blessing">{{ bill_title }}</p>
+                    <h1>{{ business_name }}</h1>
+                    <p class="business-subtitle">{{ business_subtitle }}</p>
+                    <p>{{ business_address }}</p>
+                    <p class="bank-details">{{ bank_details }}</p>
+                </header>
+
+                <section class="bill-book-details">
+                    <p><strong>M/s.:</strong><span>{{ bill.customer_name }}</span></p>
+                    <p><strong>Challan No.:</strong><span>{{ bill.challan_no }}</span></p>
+                    <p><strong>Date:</strong><span>{{ display_date }}</span></p>
+                    <p><strong>Veh. No.:</strong><span>{{ bill.vehicle_no }}</span></p>
+                </section>
+
+                <table class="bill-book-table">
+                    <thead>
+                        <tr><th>Sr.No.</th><th>Description</th><th>Amount Rs.</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for row in bill.rows %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ row.description }}</td>
+                                <td class="amount-cell">{{ '%.2f'|format(row.amount) }}</td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="3" class="empty-bill-row">&nbsp;</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <section class="bill-book-totals">
+                    <p><strong>Balance:</strong><span>Rs. {{ '%.2f'|format(bill.balance) }}</span></p>
+                    <p><strong>Total:</strong><span>Rs. {{ '%.2f'|format(bill.total) }}</span></p>
+                    <p class="amount-words"><strong>Amt. in Words:</strong><span>{{ amount_words }}</span></p>
+                </section>
+
+                <footer class="bill-book-footer">
+                    <p>{{ footer_message }}</p>
+                    <strong>{{ footer_business }}</strong>
+                </footer>
+            </section>
+
+            <section class="preprinted-values" aria-hidden="{{ 'false' if print_mode == 'values' else 'true' }}">
+                <span class="positioned-value" style="left: {{ print_offsets.customer_name.x }}mm; top: {{ print_offsets.customer_name.y }}mm;">{{ bill.customer_name }}</span>
+                <span class="positioned-value" style="left: {{ print_offsets.challan_no.x }}mm; top: {{ print_offsets.challan_no.y }}mm;">{{ bill.challan_no }}</span>
+                <span class="positioned-value" style="left: {{ print_offsets.date.x }}mm; top: {{ print_offsets.date.y }}mm;">{{ display_date }}</span>
+                <span class="positioned-value" style="left: {{ print_offsets.vehicle_no.x }}mm; top: {{ print_offsets.vehicle_no.y }}mm;">{{ bill.vehicle_no }}</span>
+                {% for row in preprinted_rows %}
+                    <span class="positioned-value" style="left: {{ print_offsets.rows.sr_no_x }}mm; top: {{ row.y }}mm;">{{ row.sr_no }}</span>
+                    <span class="positioned-value positioned-description" style="left: {{ print_offsets.rows.description_x }}mm; top: {{ row.y }}mm;">{{ row.description }}</span>
+                    <span class="positioned-value positioned-amount" style="left: {{ print_offsets.rows.amount_x }}mm; top: {{ row.y }}mm;">{{ row.amount }}</span>
+                {% endfor %}
+                <span class="positioned-value positioned-amount" style="left: {{ print_offsets.balance.x }}mm; top: {{ print_offsets.balance.y }}mm;">{{ '%.2f'|format(bill.balance) }}</span>
+                <span class="positioned-value positioned-amount" style="left: {{ print_offsets.total.x }}mm; top: {{ print_offsets.total.y }}mm;">{{ '%.2f'|format(bill.total) }}</span>
+                <span class="positioned-value positioned-words" style="left: {{ print_offsets.amount_words.x }}mm; top: {{ print_offsets.amount_words.y }}mm;">{{ amount_words }}</span>
+            </section>
+        </article>
+    </main>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

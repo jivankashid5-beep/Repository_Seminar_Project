@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ 'Edit Bill' if editing else 'New Bill' }} | Driver Billing System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <main class="page-shell">
+        <header class="topbar">
+            <div>
+                <p class="eyebrow">Driver Billing System</p>
+                <h1>{{ 'Edit Bill' if editing else 'Create a Bill' }}</h1>
+            </div>
+            <a class="button button-light" href="{{ url_for('bills_page') }}">Saved bills</a>
+        </header>
+
+        {% if error %}
+            <div class="alert" role="alert">{{ error }}</div>
+        {% endif %}
+
+        <section class="voice-panel" aria-labelledby="voice-heading">
+            <div class="voice-panel-top">
+                <div>
+                    <p class="eyebrow">Voice entry</p>
+                    <h2 id="voice-heading">Speak one bill line</h2>
+                    <p class="voice-help">Example: “Dhoot Transmission, Yazaki to Dhoot, 2200”</p>
+                </div>
+                <label class="field language-field">
+                    <span>Speech language</span>
+                    <select id="voice-language">
+                        <option value="en-IN">English (India)</option>
+                        <option value="hi-IN">Hindi (India)</option>
+                    </select>
+                </label>
+            </div>
+            <div class="voice-main-actions">
+                <button class="button button-voice" id="main-mic" type="button">🎙 Speak bill line</button>
+                <span id="voice-status" class="voice-status" role="status" aria-live="polite">Choose a language, then allow microphone access when prompted.</span>
+            </div>
+            <label class="field transcript-field" for="voice-transcript">
+                <span>Recognized text (you can edit this before applying)</span>
+                <textarea id="voice-transcript" rows="2" placeholder="Your recognized words will appear here"></textarea>
+            </label>
+            <button class="button button-secondary" id="apply-transcript" type="button">Apply line to fields</button>
+        </section>
+
+        <form id="bill-form" class="bill-form" method="post" action="{{ form_action }}">
+            <section class="business-heading">
+                <p class="business-blessing">{{ bill_title }}</p>
+                <h2>{{ business_name }}</h2>
+                <p>{{ business_subtitle }}</p>
+                <p>{{ business_address }}</p>
+                <p class="bank-details">{{ bank_details }}</p>
+            </section>
+
+            <section class="form-grid" aria-label="Bill details">
+                <label class="field field-wide">
+                    <span>M/s. Customer name</span>
+                    <span class="voice-input">
+                        <input id="customer-name" type="text" name="customer_name" required value="{{ bill.customer_name or '' }}" placeholder="Enter customer or company name">
+                        <button class="field-mic" type="button" data-voice-target="customer-name" aria-label="Speak customer name" title="Speak customer name">🎙</button>
+                    </span>
+                </label>
+                <label class="field">
+                    <span>Challan No.</span>
+                    <input type="number" value="{{ next_challan_no }}" readonly aria-readonly="true">
+                </label>
+                <label class="field">
+                    <span>Date</span>
+                    <span class="voice-input">
+                        <input id="bill-date" type="date" name="date" required value="{{ bill.date or today }}">
+                        <button class="field-mic" type="button" data-voice-target="bill-date" aria-label="Speak date" title="Speak date">🎙</button>
+                    </span>
+                </label>
+                <label class="field">
+                    <span>Veh. No.</span>
+                    <span class="voice-input">
+                        <input id="vehicle-no" type="text" name="vehicle_no" required value="{{ bill.vehicle_no or '' }}" placeholder="e.g. MH-12-AB-1234">
+                        <button class="field-mic" type="button" data-voice-target="vehicle-no" aria-label="Speak vehicle number" title="Speak vehicle number">🎙</button>
+                    </span>
+                </label>
+                <label class="field">
+                    <span>Balance (₹)</span>
+                    <span class="voice-input">
+                        <input id="bill-balance" type="number" name="balance" min="0" step="0.01" required value="{{ bill.balance if bill else 0 }}">
+                        <button class="field-mic" type="button" data-voice-target="bill-balance" aria-label="Speak balance" title="Speak balance">🎙</button>
+                    </span>
+                </label>
+            </section>
+
+            <section class="rows-section">
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Bill details</p>
+                        <h2>Items and charges</h2>
+                    </div>
+                    <button class="button button-secondary" id="add-row" type="button">Add row</button>
+                </div>
+
+                <div class="table-wrap">
+                    <table class="bill-table">
+                        <thead>
+                            <tr>
+                                <th class="number-column">Sr. No.</th>
+                                <th>Description</th>
+                                <th class="amount-column">Amount (₹)</th>
+                                <th class="action-column">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bill-rows">
+                            {% if bill.rows %}
+                                {% for row in bill.rows %}
+                                    <tr class="bill-row">
+                                        <td class="row-number"></td>
+                                        <td><span class="voice-input"><input id="row-description-{{ loop.index }}" class="row-description" type="text" name="descriptions[]" value="{{ row.description }}" placeholder="Description"><button class="field-mic" type="button" data-voice-target="row-description" aria-label="Speak description" title="Speak description">🎙</button></span></td>
+                                        <td><span class="voice-input"><input id="row-amount-{{ loop.index }}" class="row-amount" type="number" name="amounts[]" min="0" step="0.01" value="{{ row.amount }}" placeholder="0.00"><button class="field-mic" type="button" data-voice-target="row-amount" aria-label="Speak amount" title="Speak amount">🎙</button></span></td>
+                                        <td><button class="remove-row" type="button" aria-label="Remove this row">Remove row</button></td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr class="bill-row">
+                                    <td class="row-number">1</td>
+                                    <td><span class="voice-input"><input id="row-description-1" class="row-description" type="text" name="descriptions[]" placeholder="Description"><button class="field-mic" type="button" data-voice-target="row-description" aria-label="Speak description" title="Speak description">🎙</button></span></td>
+                                    <td><span class="voice-input"><input id="row-amount-1" class="row-amount" type="number" name="amounts[]" min="0" step="0.01" placeholder="0.00"><button class="field-mic" type="button" data-voice-target="row-amount" aria-label="Speak amount" title="Speak amount">🎙</button></span></td>
+                                    <td><button class="remove-row" type="button" aria-label="Remove this row">Remove row</button></td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="total-panel" aria-live="polite">
+                <div>
+                    <span class="total-label">Total</span>
+                    <strong>₹ <span id="total-display">{{ '%.2f'|format(bill.total or 0) }}</span></strong>
+                </div>
+                <div class="words-line">
+                    <span class="total-label">Amt. in Words</span>
+                    <strong id="amount-in-words">{{ amount_words }}</strong>
+                </div>
+            </section>
+
+            <footer class="form-footer">
+                <p>Review the details before saving the bill.</p>
+                <button class="button button-primary" type="submit">{{ 'Update Bill' if editing else 'Save Bill' }}</button>
+            </footer>
+        </form>
+    </main>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

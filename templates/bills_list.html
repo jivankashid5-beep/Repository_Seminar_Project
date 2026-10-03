@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saved Bills | Driver Billing System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <main class="page-shell">
+        <header class="topbar">
+            <div>
+                <p class="eyebrow">{{ business_name }}</p>
+                <h1>Saved Bills</h1>
+            </div>
+            <a class="button button-primary" href="{{ url_for('home') }}">Create bill</a>
+        </header>
+
+        <section class="list-card">
+            <form class="search-form" method="get" action="{{ url_for('search_bills_page') }}">
+                <label class="field search-field">
+                    <span>Search by challan number or customer name</span>
+                    <input type="search" name="q" value="{{ search_query }}" placeholder="e.g. 6002 or Customer name">
+                </label>
+                <button class="button button-secondary" type="submit">Search</button>
+                {% if search_query %}
+                    <a class="clear-search" href="{{ url_for('bills_page') }}">Clear</a>
+                {% endif %}
+            </form>
+
+            <div class="list-heading">
+                <h2>{{ 'Search results' if search_query else 'All bills' }}</h2>
+                <span>{{ bills|length }} bill{{ '' if bills|length == 1 else 's' }}</span>
+            </div>
+
+            <div class="table-wrap">
+                <table class="bill-table bills-table">
+                    <thead>
+                        <tr>
+                            <th>Challan No.</th>
+                            <th>Date</th>
+                            <th>Customer</th>
+                            <th>Veh. No.</th>
+                            <th class="amount-column">Total (₹)</th>
+                            <th class="amount-column">Balance (₹)</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for bill in bills %}
+                            <tr>
+                                <td><a class="challan-link" href="{{ url_for('view_bill', challan_no=bill.challan_no) }}">{{ bill.challan_no }}</a></td>
+                                <td>{{ bill.display_date }}</td>
+                                <td>{{ bill.customer_name }}</td>
+                                <td>{{ bill.vehicle_no }}</td>
+                                <td class="amount-cell">{{ '%.2f'|format(bill.total) }}</td>
+                                <td class="amount-cell">{{ '%.2f'|format(bill.balance) }}</td>
+                                <td class="table-actions">
+                                    <a href="{{ url_for('view_bill', challan_no=bill.challan_no) }}">View</a>
+                                    <a href="{{ url_for('edit_bill', challan_no=bill.challan_no) }}">Edit</a>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="empty-state">
+                                    {{ 'No bills matched that search.' if search_query else 'No saved bills yet.' }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</body>
+</html>
